@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    depends_on:
+      - backend
+    networks:
+      - lextrack-network
+
+  backend:
+    image: node:18-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run start:dev"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/lextrack
+      - JWT_SECRET=your-super-secret-key-change-in-production
+      - PORT=3001
+    depends_on:
+      - db
+    networks:
+      - lextrack-network
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=lextrack
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lextrack-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@lextrack.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    depends_on:
+      - db
+    networks:
+      - lextrack-network
+
+volumes:
+  postgres_data:
+
+networks:
+  lextrack-network:
+    driver: bridge
